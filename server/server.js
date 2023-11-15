@@ -1,47 +1,74 @@
-import express from "express";
-import * as dotenv from "dotenv";
-import cors from "cors";
 import OpenAI from "openai";
-import Configuration from "openai";
+import * as dotenv from "dotenv";
+import readline from "readline";
+import express from 'express';
+import cors from 'cors';
 
-dotenv.config();
-
-const config = new Configuration({
-  apiKey: "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",
+const readLine = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
 });
 
-const openai = new OpenAI(config);
+dotenv.config();
+const secretKey = process.env.OPENAI_API_KEY;
+const openai = new OpenAI({
+  apiKey: secretKey,
+});
+
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.get("/", async (req, res) => {
-  res.status(200).send({
-    message: "hello from frontend",
-  });
-});
 
-app.post("/", async (req, res) => {
+app.post('/', async (req, res) => {
   try {
     const prompt = req.body.prompt;
-    const response = await openai.completions.create({
-      model: "gpt-3.5-turbo-instruct",
-      prompt: `${prompt}`,
-      max_tokens: 3000,
-      temperature: 0,
-    });
-    console.log(response);
 
-    res.status(200).send({
-      bot:response.choices[0].text
-    })
+    const assistant = await openai.beta.assistants.create({
+      name: "Research Assistant",
+      instructions:
+        "You are a Personal Research Assistant. This assistant AI tool will help to analyze data, explore literature review, present conceptual frameworks, charts, provide findings, methodology, and conclusion.",
+      tools: [{ type: "code_interpreter" }],
+      model: "gpt-4-1106-preview",
+    });
+
+    const thread = await openai.beta.threads.create();
+    
+    // Send user prompt to the assistant
+    const userMessage = await openai.beta.threads.messages.create(thread.id, {
+      role: "user",
+      content: prompt,
+    });
+
+    // Retrieve assistant's response
+    const run = await openai.beta.threads.runs.create(thread.id, {
+      assistant_id: assistant.id,
+    });
+
+    let runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+
+    while (runStatus.status !== "completed") {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+    }
+
+    // Get the last assistant message from the messages array
+    const messages = await openai.beta.threads.messages.list(thread.id);
+    const lastMessageForRun = messages.data
+      .filter(
+        (message) => message.run_id === run.id && message.role === "assistant"
+      )
+      .pop();
+
+    const assistantMessage = lastMessageForRun.content[0].text.value.trim();
+
+    // Send the assistant's message back to the client
+    res.json({ bot: assistantMessage });
   } catch (error) {
     console.error(error);
-    res.status(401).send({error})
-
+    res.status(500).send('Internal Server Error');
   }
 });
 
-app.listen(5000, () =>
-  console.log("listening on port 5000 at http://localhost:5000")
-);
+app.listen(3000, () => console.log(`Running at http://localhost:3000`));
+
