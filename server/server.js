@@ -63,7 +63,9 @@ app.post('/', async (req, res) => {
     const assistantMessage = lastMessageForRun.content[0].text.value.trim();
 
     // Send the assistant's message back to the client
-    res.json({ bot: assistantMessage });
+    res.status(200).send({
+      bot:assistantMessage
+    })
   } catch (error) {
     console.error(error);
     res.status(500).send('Internal Server Error');
