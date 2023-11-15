@@ -23,7 +23,7 @@ app.use(express.json());
 app.post('/', async (req, res) => {
   try {
     const prompt = req.body.prompt;
-
+    console.log(secretKey)
     const assistant = await openai.beta.assistants.create({
       name: "Research Assistant",
       instructions:
