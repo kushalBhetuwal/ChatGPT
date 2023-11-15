@@ -69,7 +69,7 @@ async function handleSubmit(event) {
   const messageDiv = document.getElementById(uniqueID);
   thinking(messageDiv);
 
-  const datares = await fetch('http://localhost:3000',{
+  const datares = await fetch('https://kuberapi.onrender.com',{
    method: 'POST',
    headers:{
     'Content-Type': 'application/json'

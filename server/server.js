@@ -11,7 +11,6 @@ const readLine = readline.createInterface({
 
 dotenv.config();
 const secretKey = process.env.OPENAI_API_KEY;
-console.log(secretKey);
 const openai = new OpenAI({
   apiKey: secretKey,
 });
